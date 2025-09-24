@@ -1,0 +1,8 @@
+{
+  "depth": 4,                                                                                                                             
+  "learning_rate": 0.005038785766223687,                                                                                                  
+  "n_estimators": 172,                                                                                                                    
+  "l2_leaf_reg": 8.3596500646116,                                                                                                         
+  "rsm": 0.631540654875466,                                                                                                               
+  "bootstrap_type": "Bayesian"
+}

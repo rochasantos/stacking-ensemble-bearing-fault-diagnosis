@@ -1,6 +1,6 @@
-# logging
 import sys
 import logging
+import json
 from src.utils import LoggerWriter
 from pathlib import Path
 
@@ -25,28 +25,58 @@ def ensure_params_exist():
             + ". You must run hyperparameter tuning before executing the experiment."
         )
 
-def run_experiment():
-    """Run experiments in a strict, readable order."""
+
+
+def run_experiment(best_dir="best_params", force_tune=False):
+    """
+    For each classifier:
+      - If best-params JSON exists (and not force_tune), use it (no tuning).
+      - Otherwise, run the tuner to create/update the JSON.
+    Finally, run the stacking experiment (wp_experimenter).
+    """
+    best_dir = Path(best_dir)
+    best_dir.mkdir(parents=True, exist_ok=True)
+
     steps = [
-        ("Tuning SVM", tune_svm_wp),
-        ("Tuning Logistic Regression", tune_lr_wp),
-        ("Tuning Random Forest", tune_rf_wp),
-        ("Tuning Decision Tree", tune_dt_wp),
-        ("Tuning CatBoost", lambda: tune_castboot_wp(task_type="CPU", n_trials=10)),
+        # (label, tuner_fn, expected_json_filename)
+        ("SVM",                 tune_svm_wp,                 "svm_best_params.json"),
+        ("Logistic Regression", tune_lr_wp,                  "lr_best_params.json"),
+        ("Random Forest",       tune_rf_wp,                  "rf_best_params.json"),
+        ("Decision Tree",       tune_dt_wp,                  "dt_best_params.json"),
+        ("CatBoost",            lambda: tune_castboot_wp(task_type="CPU", n_trials=10),
+                                 "cb_best_params.json"),
     ]
 
-    for label, fn in steps:
+    for label, tuner, json_name in steps:
         print(f"[STEP] {label} ...")
-        fn()
-        print(f"[OK] {label} completed.")
+        json_path = best_dir / json_name
 
-    print("[STEP] Validating best-params files ...")
-    ensure_params_exist()
-    print("[OK] All best-params JSON files are present.")
+        need_tune = force_tune or (not json_path.exists())
+        if not need_tune:
+            # Validate JSON readability (guards against truncated/corrupt files)
+            try:
+                with open(json_path, "r") as f:
+                    _ = json.load(f)
+                print(f"[OK] Using saved best params: {json_path.name}")
+            except Exception as e:
+                print(f"[WARN] Could not read {json_path.name} ({e}). Retuning {label}.")
+                need_tune = True
+
+        if need_tune:
+            print(f"[TUNE] Running {label} tuner ...")
+            tuner()
+            if json_path.exists():
+                print(f"[OK] Saved best params: {json_path.name}")
+            else:
+                print(f"[WARN] Expected {json_path.name} not found after tuning. "
+                      f"Ensure your tuner writes this file.")
+
+        print(f"[DONE] {label}")
 
     print("[STEP] Running stacking ensemble experiment ...")
     wp_experimenter()
     print("[DONE] Experiment finished successfully.")
+
 
 if __name__ == "__main__":
     experiment_key = "experiment"

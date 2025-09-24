@@ -12,10 +12,7 @@ class UORED(BaseDataset):
     
     Attributes
         rawfilesdir (str) : Directory where raw data files are stored.
-        spectdir (str) : Directory where processed spectrograms will be saved.
-        sample_rate (int) : Sampling rate of the vibration data.
         url (str) : URL for downloading the UORED-VAFCLS dataset.
-        debug (bool) : If True, limits the number of files processed for faster testing.
 
     Methods
         list_of_bearings(): Returns a list of tuples with filenames and URL suffixes for downloading vibration data. 
@@ -77,4 +74,50 @@ class UORED(BaseDataset):
         ("O_10_2", "798664fc-ce4f-4d0c-99e0-a30bc08cd6dc"),
         ("B_11_1", "8d34facf-e922-46cb-9ee7-f04edf7a89d2"),
         ("B_11_2", "0c1ad1e3-196e-466d-968a-41803f2d020e"),
-      
+        ("B_12_1", "7b9f2066-b6b5-4b0e-8fce-30f0bd15574f"),
+        ("B_12_2", "8837b687-1f08-4cb7-9c98-1bb1823723b4"),
+        ("B_13_1", "a0a2c68c-478b-495d-868c-ffae62b5b445"),
+        ("B_13_2", "a3bdcff7-b9d4-417b-b902-b5cfd08e0985"),
+        ("B_14_1", "7320c429-b6dc-4d4c-9dc4-57df635e603e"),
+        ("B_14_2", "1e5409ec-d96c-4d02-9ef6-69bfd3d6ff2a"),
+        ("B_15_1", "03de7b86-b6e5-4e1b-8e40-d7f9fbed8a12"),
+        ("B_15_2", "17cbbffb-987a-4706-b1b4-778012b3ac16"),
+        ("C_16_1", "ce267f69-4027-4db6-9f23-81c96029b523"),
+        ("C_16_2", "12e2565a-99da-41df-ae49-70f1f5b2fddf"),
+        ("C_17_1", "59b8814c-5a04-40fe-bfd2-7e712414d68f"),
+        ("C_17_2", "1849dd9a-55b0-4313-90d8-fd91e3f3fde6"),
+        ("C_18_1", "c2167e9e-e981-4ca2-ac7c-7dc31e058795"),
+        ("C_18_2", "2654cd65-e54c-4d88-9554-9dbf56a6c60e"),
+        ("C_19_1", "95083600-04f6-4ac4-854e-d5462f8aefbb"),
+        ("C_19_2", "b4a6118d-ddec-4e66-a2f5-ff58a4e08388"),
+        ("C_20_1", "4ceb3588-37b6-4f62-baa4-c64cbf0179a5"),
+        ("C_20_2", "8e8a485f-6fe9-4439-8f93-743a7ac431ec"),
+        ]
+
+    def _extract_data(self, filepath):
+        """ Extracts data from a .mat file for bearing fault analysis.
+        Args:
+            filepath (str): The path to the .mat file.
+        Return:
+            tuple: A tuple containing the extracted data and its label.
+        """
+        
+        matlab_file = scipy.io.loadmat(filepath)
+        
+        basename = os.path.basename(filepath).split('.')[0]
+        file_info = list(filter(lambda x: x["filename"]==basename, self.get_metainfo()))[0]
+        
+        label = file_info["label"]
+        data = matlab_file[basename][:, 0]
+         
+        if self.acquisition_maxsize:
+            return data[:self.acquisition_maxsize], label
+        else:
+            return data, label
+
+    def __str__(self):
+        return "UORED"
+    
+if __name__ == "__main__":
+    dataset = UORED()
+    print(dataset)

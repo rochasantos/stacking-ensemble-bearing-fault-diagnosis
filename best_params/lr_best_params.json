@@ -1,6 +1,6 @@
 {
-  "penalty": null,
-  "C": 5.121271933968466,
-  "solver": "saga",
-  "max_iter": 4211
+  "penalty": "l2",
+  "solver": "lbfgs",
+  "max_iter": 2517,
+  "C": 1.6185533709694249
 }

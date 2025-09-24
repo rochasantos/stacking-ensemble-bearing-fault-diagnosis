@@ -1,17 +1,10 @@
-# tune_catboost_wp_sgkfold_all_setups.py
-# ---------------------------------------------------------
-# CatBoost + Optuna com StratifiedGroupKFold (4 folds)
-# Tuning GLOBAL nos setups 1..10:
-#   - Objetivo = média das acurácias de CV (por-setup) ao longo dos 10 setups
-# Após o tuning, treina por-setup com os melhores hiperparâmetros globais
-# e avalia no test de cada setup.
-# CPU-safe: sem Poisson; 'subsample' só em Bernoulli/MVS (não em Bayesian).
-# ---------------------------------------------------------
+
 
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import optuna
+import json
 
 from sklearn.model_selection import StratifiedGroupKFold, cross_val_score
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
@@ -142,7 +135,7 @@ def make_objective(all_train_data, n_splits=4, seed=42, task_type="CPU"):
 
 
 # -------------- main --------------
-def main(task_type="CPU", n_trials=10):
+def main(task_type="CPU", n_trials=50):
     base_dir = Path("wp_features")
     setup_ids = list(range(1, 10 + 1))  
 
@@ -185,7 +178,8 @@ def main(task_type="CPU", n_trials=10):
         final = CatBoostClassifier(
             **bp,
             loss_function="MultiClass",
-            verbose=0
+            verbose=False,
+            random_state=42,
         )
         
         final.fit(
@@ -212,7 +206,12 @@ def main(task_type="CPU", n_trials=10):
     print(f"Mean accuracy over setups: {np.mean(per_setup_acc):.4f}")
     print(f"Std  accuracy over setups: {np.std(per_setup_acc):.4f}")
 
+    # Save best params
+    with open("best_params/cb_best_params.json", "w") as f:
+        json.dump(study.best_params, f, indent=2)
+    print("[INFO] Saved best params JSON.")
+
 
 if __name__ == "__main__":
     # CPU by default. If you want GPU and Poisson, call main(task_type="GPU")
-    main(task_type="CPU", n_trials=50)
+    main(task_type="CPU", n_trials=10)

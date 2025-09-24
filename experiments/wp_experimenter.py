@@ -84,9 +84,9 @@ def make_meta_learner():
     Since the meta-model inputs are base probabilities, a scaler is not necessary here.
     """
     meta = LogisticRegression(
-        penalty="l2",
+        penalty=None,
         C=5.928449559376798,
-        solver="saga",
+        solver="lbfgs",
         max_iter=1179,
         random_state=42,
         multi_class="auto",
@@ -121,14 +121,14 @@ def main():
     # Fixed meta-learner
     meta = make_meta_learner()
 
-    # Stacking: uses predict_proba of the four base models
+    # Stacking: uses predict_proba of the base models
     stack = StackingClassifier(
-        estimators=make_base_estimators(),
-        final_estimator=meta,
-        stack_method="predict_proba",   # alimenta o meta com probas dos bases
-        passthrough=False,              # apenas saídas dos bases (sem features originais)
+        estimators=make_base_estimators(), 
+        final_estimator=meta,           # Logistic Regression as meta
+        stack_method="predict_proba",   # feeds the meta with evidence from the bases
+        passthrough=False,              # only outputs from the bases (no original features)
         n_jobs=-1,
-        cv=5                             # CV interna para gerar out-of-fold probas dos bases
+        cv=4                             # Internal CV to generate out-of-fold probabilities of the bases
     )
 
     all_acc = []
